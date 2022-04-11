@@ -1,0 +1,16 @@
+@font-face {
+  font-family: PixelMplus10-Regular;
+  src: url('https://github.com/khkmgch/Clicker_Empire_Game/tree/main/fonts/PixelMplus10-Regular.woff') format('woff'),
+  url('https://github.com/khkmgch/Clicker_Empire_Game/tree/main/fonts/PixelMplus10-Regular.ttf') format('truetype');
+}
+@font-face {
+  font-family: PixelMplus10-Bold;
+  src: url('https://github.com/khkmgch/Clicker_Empire_Game/tree/main/fonts/PixelMplus10-Bold.woff') format('woff'),
+  url('https://github.com/khkmgch/Clicker_Empire_Game/tree/main/fonts/PixelMplus10-Bold.ttf') format('truetype');
+}
+.font-dot{
+    font-family: PixelMplus10-Regular;
+}
+.font-dot-bold{
+    font-family: PixelMplus10-Bold;
+}
