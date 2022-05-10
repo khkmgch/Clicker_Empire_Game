@@ -1234,6 +1234,9 @@ class View{
                 //Go backボタン
                 let control_BackBtn_sell = controlForm_sell.querySelectorAll(".back").item(0);
                 control_BackBtn_sell.addEventListener("click", function(){
+                    //canvasDivにcanvasを戻す
+                    let canvasDiv = document.getElementById("canvasDiv");
+                    canvasDiv.append(canvas);
                     Control.displayNone(Config.SidePage);
                     let fog = mainPageEle.querySelectorAll(".fog").item(0);
                     Control.displayNone(fog);
