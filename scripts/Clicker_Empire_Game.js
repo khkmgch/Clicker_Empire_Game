@@ -35,7 +35,7 @@ class Control{
         document.getElementById("ageStatus").innerHTML = `Age: ${user.age} years old`;
         document.getElementById("cashStatus").innerHTML = `Cach: $${user.cash}`;
         document.getElementById("stockStatus").innerHTML = `Stock: $${user.calcurateStockAsset()}`;
-        document.getElementById("totalTimePlayedStatus").innerHTML = `Total: ${user.totalTimePlayed} days`;
+        document.getElementById("totalTimePlayedStatus").innerHTML = `Total: ${user.days} days`;
     }
     //sidePageを更新する関数
     static updateSidePage(user){
@@ -47,7 +47,10 @@ class Control{
         if(document.getElementById("save") != undefined && document.getElementById("jsonStatusConform") != undefined){
             document.getElementById("jsonAge").innerHTML = `Age: ${user.age}`;
             document.getElementById("jsonCash").innerHTML = `Cash: ${user.cash}`;
-            document.getElementById("jsonTotalTimePlayed").innerHTML = `Total time played: ${user.totalTimePlayed} days`;
+            document.getElementById("jsonTotalTimePlayed").innerHTML = `Total time played: ${user.days} days`;
+        }
+        if(document.getElementById("userStatus") != undefined){
+            document.getElementById("stockIncome_userStatus").innerHTML = `<p>Stock</p><p>$${user.calcurateDayIncome_stock()}</p>`;
         }
     }
 }
@@ -67,7 +70,7 @@ class LineChart{
     }
     //折れ線グラフを描画する関数(drawLineChart)
     static drawLineChart(itemName, dataArray){
-        let labelsArray = new Array(160).fill("");
+        let labelsArray = new Array(380).fill("");
         let canvas = document.getElementById(`${itemName} canvas`);
         let chart = new Chart(canvas, {
             // グラフの種類：折れ線グラフを指定
@@ -122,9 +125,10 @@ class User{
     // userAvatorString(String) >> ユーザーのアバターの名前
     // partnerAvatorString(String) >> パートナーのアバターの名前
     // cash(Number) >> 現金
-    // totalTimePlayed(Number) >> プレイ時間
+    // days(Number) >> プレイ時間
     // hambarger(HashMap) >> 焼いたハンバーガーの情報
     // itemStatus(HashMap) >> 所持しているアイテムの情報
+    // partnerItemStatus(HashMap) >> パートナーが拾ってきたアイテムの情報
     // active(Boolean) >> プレイ中かどうか
     constructor(userName, userAge, userAvatorString, partnerAvatorString){
         this.name = userName;
@@ -132,18 +136,20 @@ class User{
         this.userAvatorString = userAvatorString;
         this.partnerAvatorString = partnerAvatorString;
         this.cash = 50000;
-        this.totalTimePlayed = 0;
+        this.days = 0;
         this.hambarger = User.generateHambargerStatus();
         this.itemStatus = User.generateItemStatus();
+        this.partnerItemStatus = User.generatePartnerItemStatus();
         this.active = true;
     }
     //Json.parse()で読み込んだオブジェクト(jsonDecoded)を基に新しくUserオブジェクトを作成する関数
     static remakeUserFromJsonDecoded(jsonDecoded){
         let user = new User(jsonDecoded.name, jsonDecoded.age, jsonDecoded.userAvatorString, jsonDecoded.partnerAvatorString);
         user.cash = jsonDecoded.cash;
-        user.totalTimePlayed = jsonDecoded.totalTimePlayed;
+        user.days = jsonDecoded.days;
         user.hambarger = jsonDecoded.hambarger;
         user.itemStatus = jsonDecoded.itemStatus;
+        user.partnerItemStatus = jsonDecoded.partnerItemStatus;
         user.active = jsonDecoded.active;
 
         return user;
@@ -178,20 +184,43 @@ class User{
                 //最大購入数
                 "maxPurchase" : curr["maxPurchase"]
             };
-            //stockの場合、150日以内の価格データのリストを格納する"stockDataArray"を作成する
+            //stockの場合、365日以内の価格データのリストを格納する"stockDataArray"を作成する
             if(curr["type"] == "stock"){
                 items[name]["stockDataArray"] = [curr["price"]];
             }
         }
         return items;
     }
+    //パートナーのアイテムの初期ステータスを作成して、メンバ変数.partnerItemStatusを初期化する関数
+    static generatePartnerItemStatus(){
+        let hashmap = {};
+        for(let i = 0; i < Image.PartnerItems.length; i++){
+            let item = Image.PartnerItems[i];
+            hashmap[item["name"]] = {
+                "price" : item["price"],
+                "possession" : 0,
+                "url" : item["url"]
+            }
+        }
+        return hashmap;
+    }
+    //パートナー拾ってきたアイテムを追加する関数
+    getPartnerItem(){
+        let id = HelperFunction.getRandomInteger(Image.PartnerItems.length-1, 0);
+        let item = Image.PartnerItems[id];
+        this.partnerItemStatus[item["name"]]["possession"] += 1;
+    }
     //アカウント情報を1秒後のものに更新する関数(updateUser)
     updateUser(){
         //プレイ時間を更新
-        this.totalTimePlayed += 1;
+        this.days += 1;
         //年齢を更新
-        if(this.totalTimePlayed % 365 == 0){
+        if(this.days % 365 == 0){
             this.age += 1;
+        }
+        //60日ごとにパートナーがアイテムを拾ってくる
+        if(this.days % 60 == 0){
+            this.getPartnerItem();
         }
         //stockのpriceとdataArrayを更新
         this.updateStockPrice();
@@ -199,6 +228,7 @@ class User{
 
         //一日当たりの金利収入をcashに追加
         let totalDayIncome = this.calcurateDayIncome_realEstate() + this.calcurateDayIncome_stock() + this.calcurateDayIncome_bonds();
+        totalDayIncome = Math.floor(totalDayIncome);
         this.updateCach(totalDayIncome);
     }
     //所持している株の資産総額を計算する関数
@@ -257,7 +287,7 @@ class User{
             if(this.itemStatus[itemName]["type"] == "stock"){
                 let array = this.itemStatus[itemName]["stockDataArray"];
                 let newData = this.itemStatus[itemName]["price"];
-                if(array.length < 150){
+                if(array.length < 365){
                     this.itemStatus[itemName]["stockDataArray"].push(newData);
                 }else{
                     array.push(newData);
@@ -338,16 +368,16 @@ class Image{
          "type" : "stock",
          "url" : "https://github.com/khkmgch/Clicker_Empire_Game/blob/main/images/SodaPDF-converted-finance_kabu.png?raw=true",
          "price" : 300000,
-         "effect" : 0.1,
+         "effect" : 0.001,
          "effectUnit" : "%",
-         "maxPurchase" : Number.POSITIVE_INFINITY},
+         "maxPurchase" : Number.MAX_VALUE},
         {"name" : "ETF Bonds",
          "type" : "bonds",
          "url" : "https://github.com/khkmgch/Clicker_Empire_Game/blob/main/images/SodaPDF-converted-finance_dollar.png?raw=true",
          "price" : 300000,
-         "effect" : 0.07,
+         "effect" : 0.007,
          "effectUnit" : "%",
-         "maxPurchase" : Number.POSITIVE_INFINITY},
+         "maxPurchase" : Number.MAX_VALUE},
         {"name" : "Coffee Stand",
          "type" : "real Estate",
          "url" : "https://github.com/khkmgch/Clicker_Empire_Game/blob/main/images/SodaPDF-converted-coffee_3.png?raw=true",
@@ -418,7 +448,96 @@ class Image{
          "effect" : 30000000000,
          "effectUnit" : "$",
          "maxPurchase" : 1}
-    ]
+    ];
+    static PartnerItems = [
+        {"name" : "Accessary",
+         "price" : 20000,
+         "url" : "https://github.com/khkmgch/Clicker_Empire_Game/blob/main/images/accessary_2_result.png?raw=true"},
+         {"name" : "Alien",
+          "price" : 10000000000,
+          "url" : "https://github.com/khkmgch/Clicker_Empire_Game/blob/main/images/alien_result.png?raw=true"},
+         {"name" : "Beach parasol",
+          "price" : 2000,
+          "url" : "https://github.com/khkmgch/Clicker_Empire_Game/blob/main/images/beach_parasol_result.png?raw=true"},
+         {"name" : "Bow and arrow",
+          "price" : 5000,
+          "url" : "https://github.com/khkmgch/Clicker_Empire_Game/blob/main/images/bow_and_arrow_result.png?raw=true"},
+         {"name" : "Cap",
+          "price" : 1500,
+          "url" : "https://github.com/khkmgch/Clicker_Empire_Game/blob/main/images/cap_2_result.png?raw=true"},
+         {"name" : "Wind bell",
+          "price" : 500,
+          "url" : "https://github.com/khkmgch/Clicker_Empire_Game/blob/main/images/fuulin_result.png?raw=true"},
+         {"name" : "Guiter",
+          "price" : 30000,
+          "url" : "https://github.com/khkmgch/Clicker_Empire_Game/blob/main/images/guiter_1_result.png?raw=true"},
+         {"name" : "Hagoita",
+          "price" : 300,
+          "url" : "https://github.com/khkmgch/Clicker_Empire_Game/blob/main/images/hagoita_result.png?raw=true"},
+         {"name" : "Halloween pumpkin",
+          "price" : 3000,
+          "url" : "https://github.com/khkmgch/Clicker_Empire_Game/blob/main/images/halloween_j_olantern_result.png?raw=true"},
+         {"name" : "Harp",
+          "price" : 300000,
+          "url" : "https://github.com/khkmgch/Clicker_Empire_Game/blob/main/images/harp_result.png?raw=true"},
+          {"name" : "Hina doll",
+          "price" : 1000,
+          "url" : "https://github.com/khkmgch/Clicker_Empire_Game/blob/main/images/hina_doll_7_result.png?raw=true"},
+          {"name" : "Kagamimochi",
+          "price" : 500,
+          "url" : "https://github.com/khkmgch/Clicker_Empire_Game/blob/main/images/kagamimochi_2_result.png?raw=true"},
+          {"name" : "Japanese sword",
+          "price" : 150000,
+          "url" : "https://github.com/khkmgch/Clicker_Empire_Game/blob/main/images/katana_result.png?raw=true"},
+          {"name" : "Koinobori",
+          "price" : 2500,
+          "url" : "https://github.com/khkmgch/Clicker_Empire_Game/blob/main/images/koinobori_6_result.png?raw=true"},
+          {"name" : "Koma",
+          "price" : 800,
+          "url" : "https://github.com/khkmgch/Clicker_Empire_Game/blob/main/images/koma_result.png?raw=true"},
+          {"name" : "Makimono",
+          "price" : 30000,
+          "url" : "https://github.com/khkmgch/Clicker_Empire_Game/blob/main/images/makimono_3r_result.png?raw=true"},
+          {"name" : "Momiji",
+          "price" : 200,
+          "url" : "https://github.com/khkmgch/Clicker_Empire_Game/blob/main/images/momiji_2_result.png?raw=true"},
+          {"name" : "Omikuji",
+          "price" : 200,
+          "url" : "https://github.com/khkmgch/Clicker_Empire_Game/blob/main/images/omikuji_result.png?raw=true"},
+          {"name" : "Oni mask",
+          "price" : 500,
+          "url" : "https://github.com/khkmgch/Clicker_Empire_Game/blob/main/images/oni_mask_red_result.png?raw=true"},
+          {"name" : "Ribon bell",
+          "price" : 700,
+          "url" : "https://github.com/khkmgch/Clicker_Empire_Game/blob/main/images/ribon_bell_result.png?raw=true"},
+          {"name" : "Sakura",
+          "price" : 200,
+          "url" : "https://github.com/khkmgch/Clicker_Empire_Game/blob/main/images/sakura_result.png?raw=true"},
+          {"name" : "Pearl",
+          "price" : 70000,
+          "url" : "https://github.com/khkmgch/Clicker_Empire_Game/blob/main/images/shinjyu_3_result.png?raw=true"},
+          {"name" : "Kadomatsu",
+          "price" : 3000,
+          "url" : "https://github.com/khkmgch/Clicker_Empire_Game/blob/main/images/shogatsu_kadomatsu_result.png?raw=true"},
+          {"name" : "Shuriken",
+          "price" : 5000,
+          "url" : "https://github.com/khkmgch/Clicker_Empire_Game/blob/main/images/shuriken_2_result.png?raw=true"},
+          {"name" : "Uchiwa",
+          "price" : 300,
+          "url" : "https://github.com/khkmgch/Clicker_Empire_Game/blob/main/images/uchiwa_3_2_result.png?raw=true"},
+          {"name" : "float",
+          "price" : 1500,
+          "url" : "https://github.com/khkmgch/Clicker_Empire_Game/blob/main/images/ukiwa_result.png?raw=true"},
+          {"name" : "Watch",
+          "price" : 15000,
+          "url" : "https://github.com/khkmgch/Clicker_Empire_Game/blob/main/images/watch_3_result.png?raw=true"},
+          {"name" : "X-max Ornaments",
+          "price" : 2000,
+          "url" : "https://github.com/khkmgch/Clicker_Empire_Game/blob/main/images/x-mas_goods_result.png?raw=true"},
+          {"name" : "X-max tree",
+          "price" : 15000,
+          "url" : "https://github.com/khkmgch/Clicker_Empire_Game/blob/main/images/xmas_tree_2014_result.png?raw=true"}
+    ];
 }
 //画面表示に関する関数を囲ったViewクラス
 class View{
@@ -501,7 +620,7 @@ class View{
                     <p>Cash</p><p>$${userJsonDecoded.cash}</p>
                 </div>
                 <div class="d-flex justify-content-between">
-                    <p>Total time played</p><p>${userJsonDecoded.totalTimePlayed} days</p>
+                    <p>Total time played</p><p>${userJsonDecoded.days} days</p>
                 </div>
             </div>
 
@@ -847,7 +966,6 @@ class View{
             })
             Control.updatePageContent(Config.SidePage, jsonConfirmPage);
         })
-        
         //リセットボタン(resetBtn)
         let resetBtn = saveBtn.cloneNode(true);
         resetBtn.id = "resetBtn";
@@ -861,6 +979,7 @@ class View{
                 let fog = container.querySelectorAll(".fog").item(0);
                 Control.displayBlock(fog);
                 Control.displayBlock(Config.SidePage);
+                //セーブデータを読み込んでオブジェクトを作成し直す
                 let saveData = User.remakeUserFromJsonDecoded(JSON.parse(localStorage.getItem("saveData")));
                 let jsonConfirmPage = View.jsonConfirm_SidePage(saveData, "reset", textStyle);
                 let jsonForm = jsonConfirmPage.querySelectorAll("form").item(0);
@@ -899,10 +1018,10 @@ class View{
                 <div class="col-3">
                     <div class="d-flex justify-content-center align-items-end">
                         <div class="img-w60-box">
-                            <img src="${Image.UserAvators[userAccount.userAvatorString]}" class="gray avator">
+                            <img id="userAvatorBtn" src="${Image.UserAvators[userAccount.userAvatorString]}" class="gray avator">
                         </div>
                         <div class="img-w30-box">
-                            <img src="${Image.PartnerAvators[userAccount.partnerAvatorString]}" class="gray avator">
+                            <img id="partnerAvatorBtn" src="${Image.PartnerAvators[userAccount.partnerAvatorString]}" class="gray avator">
                         </div>
                     </div>
                 </div>
@@ -917,17 +1036,32 @@ class View{
                             <div id="stockStatus">Stock: $${userAccount.calcurateStockAsset()}</div>
                         </div>
                         <div class="col-4">
-                            <div id="totalTimePlayedStatus">Total: ${userAccount.totalTimePlayed} days</div>
+                            <div id="totalTimePlayedStatus">Total: ${userAccount.days} days</div>
                         </div>
                     </div>
                 </div>
             </div>
         `;
-        //ページ下部のflexSec
+        //ユーザーの画像をクリックすると、一日の収入を表示するようにイベントハンドラを追加
+        let userAvatorBtn = statusSec.querySelector("#userAvatorBtn");
+        userAvatorBtn.addEventListener("click", function(){
+            let fog = container.querySelectorAll(".fog").item(0);
+            Control.displayBlock(fog);
+            Control.displayBlock(Config.SidePage);
+            Control.updatePageContent(Config.SidePage, View.userStatus_SidePage(userAccount, container, textStyle));
+        })
+        //パートナーの画像をクリックすると、拾ってきたアイテムを表示するようにイベントハンドラを追加
+        let partnerAvatorBtn = statusSec.querySelector("#partnerAvatorBtn");
+        partnerAvatorBtn.addEventListener("click", function(){
+            let fog = container.querySelectorAll(".fog").item(0);
+            Control.displayBlock(fog);
+            Control.displayBlock(Config.SidePage);
+            Control.updatePageContent(Config.SidePage, View.partnerStatus_SidePage(userAccount, container, textStyle));
+        })
+        //ハンバーガーとアイテムを表示するページ下部のセクション(flexSec)
         let flexSec = document.createElement("div");
         container.append(flexSec);
         flexSec.classList.add("d-flex", "flex-wrap", "align-items-center");
-
         //ハンバーガーをクリックするセクション(bargerSec)
         let bargerSec = document.createElement("div");
         flexSec.append(bargerSec);
@@ -953,12 +1087,10 @@ class View{
         bargerBtn.addEventListener("mouseup", function(){
             bargerBtn.classList.remove("barger-click");
         })
-        
         //アイテムを表示するセクション(itemSec)
         let itemSec = document.createElement("div");
         flexSec.append(itemSec);
         itemSec.classList.add("itemSec-style", "col-12", "col-md-9", textStyle);
-        
         //Image.Itemsをループして全てのアイテムをitemSecに追加する
         for(let i = 0; i < Image.Items.length; i++){
             //現在のアイテム(currItem)
@@ -971,9 +1103,8 @@ class View{
             let effectString = View.effectString(currItem);
             //現在のアイテム(currItem)をユーザーが何個持っているかを取得する(possession)
             let possession = userAccount.itemStatus[itemName]["possession"];
-
-            let maxPurchase = Number.isFinite(currItem["maxPurchase"]) ? currItem["maxPurchase"].toString() : "∞";
-        
+            //アイテムの最大購入数を取得(maxPurchase)
+            let maxPurchase = currItem["maxPurchase"] >= Number.MAX_VALUE ? "∞" : currItem["maxPurchase"].toString();
             //アイテムの情報を表示する要素(itemDiv)
             let itemDiv = document.createElement("div");
             itemDiv.id = itemName;
@@ -1021,6 +1152,200 @@ class View{
 
         return container;
     }
+    //ユーザーの１日あたりの収入を表示するページを作成する関数
+    static userStatus_SidePage(userAccount, mainPageEle, textStyle){
+        let container = document.createElement("div");
+        container.classList.add("border-double", "p-2", "d-flex", "flex-column",  "justify-content-center", "align-items-center");
+        container.innerHTML = `
+            <div class="middle-text">${userAccount.name}'s Income Per Day</div>
+            <div id="userStatus" class="col-8 border-dotted ${textStyle} p-3">
+                <div class="d-flex justify-content-between ">
+                    <p>Real estate</p><p>$${userAccount.calcurateDayIncome_realEstate()}</p>
+                </div>
+                <div id="stockIncome_userStatus" class="d-flex justify-content-between">
+                    <p>Stock</p><p>$${userAccount.calcurateDayIncome_stock()}</p>
+                </div>
+                <div class="d-flex justify-content-between">
+                    <p>Bonds</p><p>$${userAccount.calcurateDayIncome_bonds()}</p>
+                </div>
+            </div>
+            <form class="form col-8 mt-3 d-flex flex-column align-items-center">
+                <button type="button" class="btn-style rounded ${textStyle} col-12 mt-2">Go back</button>
+            </form>        
+        `;
+        let form = container.querySelectorAll("form").item(0);
+        let backBtn = form.querySelectorAll("button").item(0);
+        backBtn.addEventListener("click", function(){
+            Control.displayNone(Config.SidePage);
+            let fog = mainPageEle.querySelectorAll(".fog").item(0);
+            Control.displayNone(fog);
+            Control.updatePageContent(Config.MainPage, View.mainPage(userAccount, textStyle));
+        })
+        return container;
+    }
+    //パートナーが拾ってきたアイテムを表示するページを作成する関数
+    static partnerStatus_SidePage(userAccount, mainPageEle, textStyle){
+        let container = document.createElement("div");
+        container.classList.add("border-double", "p-2", "d-flex", "flex-column", "align-items-center", "justify-content-center");
+        let titleSec = document.createElement("div");
+        titleSec.classList.add("col-10", "middle-text", "m-2");
+        titleSec.innerHTML = `${userAccount.partnerAvatorString} picked up ...`;
+        container.append(titleSec);
+        //アイテムを表示するセクション(itemSec)
+        let itemSec = document.createElement("div");
+        container.append(itemSec);
+        itemSec.classList.add("itemSec-style", "col-10", textStyle);
+        //パートナーが拾ってきたアイテムの情報を.partnerItemStatusで取得する
+        let items = userAccount.partnerItemStatus;
+        //itemsをループしてアイテムをitemSecに追加する
+        for(let itemName in items){
+            //現在のアイテム(curr)
+            let curr = items[itemName];
+            //現在のアイテム(curr)を何個持っているかを取得する(possession)
+            let possession = curr["possession"];
+            if(possession > 0){
+                let price = curr["price"];
+                let url = curr["url"];
+                //アイテムの情報を表示する要素(itemDiv)
+                let itemDiv = document.createElement("div");
+                itemDiv.classList.add("d-flex", "item");
+                itemDiv.innerHTML = `
+                    <div class="col-2 p-2 p-relative">
+                        <img src="${url}" class="gray">
+                    </div>
+                    <div class="col-10 d-flex align-items-center text-center">
+                        <div class="col-4 d-flex flex-column">
+                            <p>${itemName}</p>
+                        </div>
+                        <div class="col-4">
+                            <p>$${price}</p>
+                        </div>
+                        <div class="col-4">
+                            <p>${possession} pieces</p>
+                        </div>
+                    </div>
+                `;
+                //itemDivのimgタグ(itemImg)
+                let itemImg = itemDiv.querySelectorAll("img").item(0);
+                //itemDivにマウスを合わせるとitemImgの色をカラー表示するイベントハンドラを追加
+                itemDiv.addEventListener("mouseover", function(){
+                    itemImg.classList.add("gray-hover");
+                })
+                //itemDivからマウスを外すとitemImgの色をグレー表示に戻すイベントハンドラを追加
+                itemDiv.addEventListener("mouseleave", function(){
+                    itemImg.classList.remove("gray-hover");
+                })
+                //itemDivをクリックすると、対応するアイテムのサイドページを表示するイベントハンドラを追加する
+                itemDiv.addEventListener("click", function(){
+                    let fog = container.querySelectorAll(".fog").item(0);
+                    Control.displayBlock(fog);
+                    Control.updatePageContent(Config.SidePage, View.partnerItem_SidePage(userAccount, mainPageEle, container, itemName, price, url, textStyle));
+                })
+                itemSec.append(itemDiv);
+            }
+        }
+        let form = document.createElement("form");
+        form.classList.add("form", "col-8", "mt-3", "d-flex", "flex-column", "align-items-center");
+        form.innerHTML = `<button type="button" class="btn-style rounded ${textStyle} col-12 mt-2">Go back</button>`;
+        container.append(form);
+        let backBtn = form.querySelectorAll("button").item(0);
+        backBtn.addEventListener("click", function(){
+            let fog = mainPageEle.querySelectorAll(".fog").item(0);
+            Control.displayNone(fog);
+            Control.displayNone(Config.SidePage);
+        })
+        //sidePageを表示する時にmainPageを隠すためのfog
+        let fog = document.createElement("div");
+        container.append(fog);
+        fog.classList.add("fog", "d-none");
+
+        return container;
+    }
+    //パートナーが拾ってきたアイテムを売るページを作成する関数
+    static partnerItem_SidePage(userAccount, mainPageEle, sidePageEle, itemName, price, url, textStyle){
+        let container = document.createElement("div");
+        container.classList.add("border-double", "p-2");
+        let possession = userAccount.partnerItemStatus[itemName]["possession"];
+        //アイテムの情報を表示するinfoSec
+        let infoSec = document.createElement("div");
+        container.append(infoSec);
+        infoSec.classList.add("d-flex", "mh-px120");        
+        infoSec.innerHTML = `
+            <div class="col-8 d-flex flex-column align-items-center">
+                <div class="col-12">
+                    <div id="itemName" class="middle-text">${itemName}</div>
+                </div>
+                <div id="details" class="col-10 small-text">
+                    <div>Price: $${price}/each</div>
+                    <div>Possession: ${possession} pieces</div>
+                </div>
+            </div>
+            <div class="col-4 p-2">
+                <img src="${url}" class="gray">
+            </div>        
+        `;
+        //売る数を決めるcontrolSec
+        let controlSec = View.createControlSec_SidePage("sell", textStyle);
+        container.append(controlSec);
+        //infoSecとcontrolSecを隠すためのfogSec
+        let fogSec = document.createElement("div");
+        container.append(fogSec);
+        fogSec.classList.add("fog", "d-none");
+        //controlSecのformタグ(controlForm)
+        let controlForm = controlSec.querySelectorAll("form").item(0);
+        //controlFormのinputタグ(controlForm_Input)
+        let controlForm_Input = controlForm.querySelectorAll("input").item(0);
+        let totalP = controlForm.querySelector("#total");
+        //controlForm_Inputの値(アイテムの個数)が変更されると、totalPのHTML(値段)を変更するイベントハンドラを設定
+        controlForm_Input.addEventListener("change", function(){
+            let count = parseInt(controlForm_Input.value);
+            totalP.innerHTML = (price * count).toString();
+            if(count > possession){
+                alert("Entered number have exceeded the number you have.");
+            }
+        })
+        //Go backボタン
+        let control_BackBtn = controlForm.querySelectorAll(".back").item(0);
+        control_BackBtn.addEventListener("click", function(){
+            let fog = sidePageEle.querySelectorAll(".fog").item(0);
+            Control.displayNone(fog);
+            Control.updatePageContent(Config.SidePage, View.partnerStatus_SidePage(userAccount, mainPageEle, textStyle));
+        })
+        //Sellボタン
+        controlForm.addEventListener("submit", function(){
+            let count = parseInt(controlForm_Input.value);
+            if(count < 1){
+                alert("Please enter the number larger than 1.");
+                event.preventDefault();
+            }else if(count <= possession){
+                Control.displayBlock(fogSec);
+                let confirmCon = View.confirmCon_SidePage("sell", itemName, count, price, textStyle);
+                container.append(confirmCon);
+                let confirmForm = confirmCon.querySelectorAll("form").item(0);
+                confirmForm.addEventListener("submit", function(){
+                    let value = confirmForm.querySelectorAll(`input[name="radioSelect"]:checked`).item(0).value;
+                    if(value == "Yes"){
+                        Control.displayNone(fogSec);
+                        //アイテムの所持数,所持金を更新
+                        let total = count * price;
+                        userAccount.updateCach(total);
+                        userAccount.partnerItemStatus[itemName]["possession"] -= count;
+                    }
+                    if(value == "No"){
+                        Control.displayNone(fogSec);
+                    }
+                    Control.updatePageContent(Config.SidePage, View.partnerItem_SidePage(userAccount, mainPageEle, sidePageEle, itemName, price, url, textStyle));
+                    event.preventDefault();
+                })   
+            }else{
+                alert("Entered number have exceeded the number you have.");
+                event.preventDefault();
+            }
+            event.preventDefault();
+        })
+        return container;
+    }
+    //保存、リセットの際の確認画面を作成する関数
     static jsonConfirm_SidePage(userAccount, mode, textStyle){
         let container = document.createElement("div");
         container.id = mode;
@@ -1031,7 +1356,7 @@ class View{
                     <p>Name: ${userAccount.name}</p>
                     <p id="jsonAge">Age: ${userAccount.age}</p>
                     <p id="jsonCash">Cash: ${userAccount.cash}</p>
-                    <p id="jsonTotalTimePlayed">Total time played: ${userAccount.totalTimePlayed} days</p>
+                    <p id="jsonTotalTimePlayed">Total time played: ${userAccount.days} days</p>
                 </div>
                 <div class="${textStyle} text-center">
                     Do you really ${mode}?
@@ -1059,6 +1384,7 @@ class View{
         `;
         return container;
     }
+    //アイテムを購入する画面を作成する関数
     static item_SidePage(userAccount, mainPageEle, itemName, type, effectString, textStyle){
         let container = document.createElement("div");
         container.classList.add("border-double", "p-2");
@@ -1071,8 +1397,7 @@ class View{
         //アイテムの値段(price)
         let price = itemMap["price"];
         //アイテムの最大購入数を取得(maxPurchase)
-        let maxPurchase = itemMap["maxPurchase"];
-        let maxPurchaseString = Number.isFinite(maxPurchase) ? maxPurchase : "∞";
+        let maxPurchase = itemMap["maxPurchase"] >= Number.MAX_VALUE ? "∞" : itemMap["maxPurchase"].toString();
         infoSec.innerHTML = `
             <div class="col-8 d-flex flex-column align-items-center">
                 <div class="col-12">
@@ -1082,7 +1407,7 @@ class View{
                     <div id="itemPrice">Price: $${price}/each</div>
                     <div id="stockPrice"></div>
                     <div id="itemEffect">Effect: ${effectString}</div>
-                    <div id="itemMaxPurchases">Max purchases: ${maxPurchaseString}</div>
+                    <div id="itemMaxPurchases">Max purchases: ${maxPurchase}</div>
                     <div id="itemPossession"></div>
                 </div>
             </div>
@@ -1090,7 +1415,7 @@ class View{
                 <img src="${itemMap["url"]}" class="gray">
             </div>        
         `;
-        //株に表示するDiv
+        //アイテムが株の時に表示するDiv
         let stockOnly_Div = document.createElement("div");
         container.append(stockOnly_Div);
         //アイテムの購入数を決めるcontrolSec
@@ -1109,8 +1434,11 @@ class View{
         controlForm_Input.addEventListener("change", function(){
             let count = parseInt(controlForm_Input.value);
             totalP.innerHTML = (price * count).toString();
-            if(count + itemMap["possession"] > itemMap["maxPurchase"]){
+            if(count + itemMap["possession"] > maxPurchase){
                 alert("You have exceeded the limit of the number of possessions");
+            }
+            if(price * count > userAccount.cash){
+                alert(`You don't enough money.`);
             }
         })
         //Go backボタン
@@ -1174,7 +1502,7 @@ class View{
             //グラフが描画されたcanvas要素をid(${itemName} canvas)で取得
             let canvas = document.getElementById(`${itemName} canvas`);
             stockOnly_canvas.append(canvas);
-
+            //Go backボタン
             control_BackBtn.addEventListener("click", function(){
                 //canvasDivにcanvasを戻す
                 let canvasDiv = document.getElementById("canvasDiv");
@@ -1187,7 +1515,7 @@ class View{
             stockOnly_BtnDiv.innerHTML = `
                 <button type="button" class="btn-style rounded small-text">>>　Go to sell</button>
             `;
-            //stockを売る画面に切り替えるボタン
+            //stockを売る画面に切り替えるGo to sellボタン
             let btn_goToSell = stockOnly_BtnDiv.querySelectorAll("button").item(0);
             btn_goToSell.addEventListener("click", function(){
                 container.innerHTML = "";
@@ -1210,10 +1538,9 @@ class View{
                 btn_goToBuy.addEventListener("click", function(){
                     Control.updatePageContent(Config.SidePage, View.item_SidePage(userAccount, mainPageEle, itemName, type, effectString, textStyle));
                 })
-
+                //売る数を入力するコントロールセクション
                 let controlSec_sell = View.createControlSec_SidePage("sell", textStyle);
                 container.append(controlSec_sell);
-                
                 //controlSec_sellのformタグ(controlForm_sell)
                 let controlForm_sell = controlSec_sell.querySelectorAll("form").item(0);
 
