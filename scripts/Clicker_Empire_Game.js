@@ -249,7 +249,7 @@ class User{
         for(let itemName in this.itemStatus){
             if(this.itemStatus[itemName]["type"] == "stock"){
                 let possession = this.itemStatus[itemName]["possession"];
-                let effect = this.itemStatus[itemName]["effect"];
+                let effect = this.itemStatus[itemName]["effect"] / 100;
                 let price = this.itemStatus[itemName]["price"];
                 total += possession * price * effect;
             }
@@ -262,7 +262,7 @@ class User{
         for(let itemName in this.itemStatus){
             if(this.itemStatus[itemName]["type"] == "bonds"){
                 let possession = this.itemStatus[itemName]["possession"];
-                let effect = this.itemStatus[itemName]["effect"];
+                let effect = this.itemStatus[itemName]["effect"] / 100;
                 let price = this.itemStatus[itemName]["price"];
                 total += possession * price * effect;
             }
@@ -368,14 +368,14 @@ class Image{
          "type" : "stock",
          "url" : "https://github.com/khkmgch/Clicker_Empire_Game/blob/main/images/SodaPDF-converted-finance_kabu.png?raw=true",
          "price" : 300000,
-         "effect" : 0.001,
+         "effect" : 0.1,
          "effectUnit" : "%",
          "maxPurchase" : Number.MAX_VALUE},
         {"name" : "ETF Bonds",
          "type" : "bonds",
          "url" : "https://github.com/khkmgch/Clicker_Empire_Game/blob/main/images/SodaPDF-converted-finance_dollar.png?raw=true",
          "price" : 300000,
-         "effect" : 0.007,
+         "effect" : 0.07,
          "effectUnit" : "%",
          "maxPurchase" : Number.MAX_VALUE},
         {"name" : "Coffee Stand",
