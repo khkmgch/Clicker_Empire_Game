@@ -5,6 +5,11 @@
 RecursionのProject3で作成したアプリです。
 一攫千金を目指し、仕事や投資、不動産等でお金を稼ぐ「Clicker Empire Game」というシミュレーションゲームです。
 
+![Clicker Empire Game1](https://user-images.githubusercontent.com/101968115/168043134-f33a8d05-849e-482f-ba12-5ef9ec300d02.jpg)
+
+![Clicker Empire Game2](https://user-images.githubusercontent.com/101968115/168043170-449bce34-bbac-40a8-b381-7407c971083d.jpg)
+
+
 ## Url
 https://khkmgch.github.io/Clicker_Empire_Game/
 
