@@ -32,3 +32,8 @@ https://khkmgch.github.io/Clicker_Empire_Game/
 パートナーは６０日に１度、アイテムを拾ってきます。
 パートナーの画像をクリックすると拾ってきたアイテムを確認でき、売ることができます。
 まれに、ものすごく高価なものを拾ってきます。
+
+## Used
+Chart.js
+localStrage
+Json
