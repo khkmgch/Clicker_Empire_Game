@@ -2,8 +2,8 @@
 
 
 ## Description
-RecursionのProject3で作成したアプリです。
-一攫千金を目指し、仕事や投資、不動産等でお金を稼ぐ「Clicker Empire Game」というシミュレーションゲームです。
+RecursionのProject3で作成した「Clicker Empire Game」というシミュレーションゲームです。
+仕事や投資、不動産等でお金を稼ぎ、一攫千金を目指しましょう！
 
 ![Clicker Empire Game1](https://user-images.githubusercontent.com/101968115/168043134-f33a8d05-849e-482f-ba12-5ef9ec300d02.jpg)
 
