@@ -6,7 +6,7 @@ RecursionのProject3で作成した「Clicker Empire Game」というシミュ�
 
 仕事や投資、不動産等でお金を稼ぎ、一攫千金を目指しましょう！
 
-![Clicker Empire Game1-2](https://user-images.githubusercontent.com/101968115/171400884-8d2d012a-a1dd-4fe1-8bfe-c11a843242fb.jpg)
+![Clicker Empire Game1-2](https://user-images.githubusercontent.com/101968115/171401195-7a12d5a8-4073-4aff-b03f-cda713a33a14.jpg)
 
 ![Clicker Empire Game2-2](https://user-images.githubusercontent.com/101968115/171400902-3761d1f1-f7e6-4f4d-8705-c60b0f4f4835.jpg)
 
